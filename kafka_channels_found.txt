@@ -1,0 +1,3 @@
+Unique access_point values found:
+
+http://df-camel-apis-df1-service/AppOmniAPI-1.0.0/api/v1.0: 100 (100.0%)
