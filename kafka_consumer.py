@@ -648,6 +648,9 @@ class FraudDetectionConsumer:
                 f"✅ APPROVE: TXN={txn_id}, Amount={amount}, "
                 f"Risk={risk_level}, Score={fraud_score:.2f}"
             )
+
+        # 🔻 NEW: Log to dashboard database
+        self.log_to_dashboard(transaction, fraud_result)
     
     def process_transaction(self, kafka_message: Dict):
         """
@@ -769,6 +772,29 @@ class FraudDetectionConsumer:
                 self.consumer.close()
             self.print_stats()
             logger.info("✅ Consumer stopped")
+
+    def log_to_dashboard(self, transaction: Dict, fraud_result: Dict):
+        """Log to dashboard database"""
+        try:
+            import sqlite3
+            conn = sqlite3.connect('fraud_events.db')
+            c = conn.cursor()
+            c.execute("""INSERT INTO fraud_events 
+                        (timestamp, transaction_id, customer_id, amount, 
+                        fraud_prediction, risk_level, recommendation, fraud_score)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (datetime.now().isoformat(),
+                    transaction.get('reference', 'N/A'),
+                    transaction.get('customer_id'),
+                    float(transaction.get('transaction_amount', 0)),
+                    fraud_result.get('fraud_prediction'),
+                    fraud_result.get('risk_level'),
+                    fraud_result.get('recommendation'),
+                    fraud_result.get('fraud_score')))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Dashboard logging error: {e}")
 
 
 def main():

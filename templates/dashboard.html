@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YEA Fraud Detection Dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .fraud { color: #e74c3c; }
+        .approved { color: #27ae60; }
+        .review { color: #f39c12; }
+        
+        .transactions {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #34495e;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        .badge-block { background: #e74c3c; color: white; }
+        .badge-review { background: #f39c12; color: white; }
+        .badge-approve { background: #27ae60; color: white; }
+        .badge-critical { background: #c0392b; color: white; }
+        .badge-high { background: #e67e22; color: white; }
+        .badge-medium { background: #f39c12; color: white; }
+        .badge-low { background: #27ae60; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛡️ YEA Fraud Detection - Live Monitor</h1>
+        <p>Co-operative Bank of Kenya | Enterprise Architecture</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-value" id="total">0</div>
+            <div class="stat-label">Total Processed (24h)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value fraud" id="fraud">0</div>
+            <div class="stat-label">Fraud Detected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #e74c3c;" id="blocked">0</div>
+            <div class="stat-label">Blocked</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #f39c12;" id="reviewed">0</div>
+            <div class="stat-label">Under Review</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value approved" id="approved">0</div>
+            <div class="stat-label">Approved</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="fraudRate">0%</div>
+            <div class="stat-label">Fraud Rate</div>
+        </div>
+    </div>
+
+    <div class="transactions">
+        <h2>Recent Transactions</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Transaction ID</th>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Risk</th>
+                    <th>Score</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="transactions">
+                <tr><td colspan="7" style="text-align:center;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        function updateDashboard() {
+            // Fetch stats
+            fetch('/api/stats')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('total').textContent = data.total_processed;
+                    document.getElementById('fraud').textContent = data.fraud_detected;
+                    document.getElementById('blocked').textContent = data.blocked;
+                    document.getElementById('reviewed').textContent = data.reviewed;
+                    document.getElementById('approved').textContent = data.approved;
+                    document.getElementById('fraudRate').textContent = data.fraud_rate.toFixed(2) + '%';
+                });
+
+            // Fetch recent transactions
+            fetch('/api/recent')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('transactions');
+                    tbody.innerHTML = data.map(t => `
+                        <tr>
+                            <td>${new Date(t.timestamp).toLocaleString()}</td>
+                            <td>${t.transaction_id}</td>
+                            <td>${t.customer_id}</td>
+                            <td>KES ${Number(t.amount).toLocaleString()}</td>
+                            <td><span class="badge badge-${t.risk_level.toLowerCase()}">${t.risk_level}</span></td>
+                            <td>${t.fraud_score.toFixed(4)}</td>
+                            <td><span class="badge badge-${t.recommendation.toLowerCase()}">${t.recommendation}</span></td>
+                        </tr>
+                    `).join('');
+                });
+        }
+
+        // Update every 5 seconds
+        updateDashboard();
+        setInterval(updateDashboard, 5000);
+    </script>
+</body>
+</html>
