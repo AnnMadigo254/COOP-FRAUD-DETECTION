@@ -16,6 +16,7 @@
 
 # API Keys and Secrets
 .env
+.venv
 .env.*
 *.key
 *.pem
